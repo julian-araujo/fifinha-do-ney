@@ -1,82 +1,96 @@
 import pygame
 import random
+import sys
 
-# Inicialização do Pygame
+# Inicializar o pygame
 pygame.init()
 
 # Configurações da tela
-largura = 1900
-altura = 900
-screen = pygame.display.set_mode((largura, altura))
-pygame.display.set_caption("car link")
+LARGURA, ALTURA = 600, 400
+TELA = pygame.display.set_mode((LARGURA, ALTURA))
+pygame.display.set_caption("Jogo de Desviar de Obstáculos")
 
-# Cores3
-branco = (255, 255, 255)
-preto = (0, 0, 0)
-vermelho = (255, 0, 0)
+# Cores
+BRANCO = (255, 255, 255)
+PRETO = (0, 0, 0)
+VERMELHO = (255, 0, 0)
+AZUL = (0, 0, 255)
 
 # Configurações do jogador
-jogador= []
-tamanho_jogador = 50
-velocidade_jogador = 100
-posicao_jogador = [largura // 2, altura - 2 * tamanho_jogador]
+jogador_largura, jogador_altura = 50, 50
+jogador_x, jogador_y = LARGURA // 2, ALTURA - jogador_altura - 10
+velocidade_jogador = 20
 
-# Lista de obstáculos
+# Configurações dos obstáculos
+obstaculo_largura, obstaculo_altura = 50, 50
 obstaculos = []
-obstaculo_largura = 50
-obstaculo_altura = 50
-velocidade_obstaculo = 15
+velocidade_obstaculo = 10
+intervalo_obstaculo = 2000  # 2 segundos
 
-# Variáveis do jogo
+# Configuração de pontuação
+pontuacao = 0
+fonte = pygame.font.Font(None, 36)
 
-clock = pygame.time.Clock()
-score = 0
-gerar_obstaculo_tempo = 0 
+# Relógio e temporizador
+relogio = pygame.time.Clock()
+pygame.time.set_timer(pygame.USEREVENT, intervalo_obstaculo)
 
-# Loop principal do jogo
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+# Função para desenhar o jogador
+def desenhar_jogador(x, y):
+    pygame.draw.rect(TELA, AZUL, (x, y, jogador_largura, jogador_altura))
 
-    # Controle do jogador
-
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT] and posicao_jogador[0] > 0:
-        posicao_jogador[0] -= 5
-    if keys[pygame.K_RIGHT] and posicao_jogador[0] < largura - tamanho_jogador:
-        posicao_jogador[0] += 5
-
-    # Gera novos obstáculos
-    gera        (obstaculo[1] < posicao_jogador[1] < obstaculo[1] + obstaculo_altura or
-                 obstaculo[1] < posicao_jogador[1] + tamanho_jogador < obstaculo[1] + obstaculo_altura):
-            print("Game Over! Você colidiu.")
-            running = False
-
-    # Limpa obstáculos fora da tela
-    obstaculos = [obstaculo for obstaculo in obstaculos if obstaculo[1] < altura]
-
-    # Atualiza a tela
-    screen.fill(branco)
-    pygame.draw.rect(screen, preto, (posicao_jogador[0], posicao_jogador[1], tamanho_jogador, tamanho_jogador))
+# Função para desenhar os obstáculos
+def desenhar_obstaculos(obstaculos):
     for obstaculo in obstaculos:
-        pygame.draw.rect(screen, vermelho, (obstaculo[0], obstaculo[1], obstaculo_largura, obstaculo_altura))
+        pygame.draw.rect(TELA, VERMELHO, obstaculo)
 
-    pygame.display.flip()
-    clock.tick(60)
+# Função principal do jogo
+def jogo():
+    global jogador_x, jogador_y, pontuacao
 
+    rodando = True
+    while rodando:
+        TELA.fill(BRANCO)
 
-pygame.quit()r_obstaculo_tempo += 1
-if gerar_obstaculo_tempo >= 20:  # Altere este valor para gerar obstáculos mais rapidamente
-        obstaculo_x = random.randint(0, largura - obstaculo_largura)
-        obstaculos.append([obstaculo_x, 0])
-        gerar_obstaculo_tempo = 0
+        # Eventos
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                rodando = False
+                pygame.quit()
+                sys.exit()
+            elif evento.type == pygame.USEREVENT:
+                x_aleatorio = random.randint(0, LARGURA - obstaculo_largura)
+                obstaculos.append(pygame.Rect(x_aleatorio, 0, obstaculo_largura, obstaculo_altura))
 
-    # Move os obstáculos
-for obstaculo in obstaculos:
-        obstaculo[1] += velocidade_obstaculo  
-for obstaculo in obstaculos:
-         if (obstaculo[0] < posicao_jogador[0] < obstaculo[0] + obstaculo_largura or
-                obstaculo[0] < posicao_jogador[0] + tamanho_jogador < obstaculo[0] + obstaculo_largura) and \
-        
+        # Movimentos do jogador
+        teclas = pygame.key.get_pressed()
+        if teclas[pygame.K_LEFT] and jogador_x > 0:
+            jogador_x -= velocidade_jogador
+        if teclas[pygame.K_RIGHT] and jogador_x < LARGURA - jogador_largura:
+            jogador_x += velocidade_jogador
+
+        # Movimentos dos obstáculos
+        for obstaculo in obstaculos[:]:
+            obstaculo.y += velocidade_obstaculo
+            if obstaculo.colliderect((jogador_x, jogador_y, jogador_largura, jogador_altura)):
+                print("Fim de jogo!")
+                rodando = False
+            if obstaculo.y > ALTURA:
+                obstaculos.remove(obstaculo)
+                pontuacao += 1
+
+        # Desenhar jogador e obstáculos
+        desenhar_jogador(jogador_x, jogador_y)
+        desenhar_obstaculos(obstaculos)
+
+        # Desenhar pontuação
+        texto_pontuacao = fonte.render(f"Pontos: {pontuacao}", True, PRETO)
+        TELA.blit(texto_pontuacao, (10, 10))
+
+        # Atualizar a tela e o relógio
+        pygame.display.flip()
+        relogio.tick(30)
+
+# Executar o jogo
+if __name__ == "__main__":
+    jogo()

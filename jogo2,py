@@ -1,0 +1,115 @@
+import pygame
+import random
+import sys
+
+# Inicializar o pygame
+pygame.init()
+
+# Configurações da tela
+LARGURA, ALTURA = 600, 600
+TELA = pygame.display.set_mode((LARGURA, ALTURA))
+pygame.display.set_caption("Corrida de Carros vs. Caminhões")
+
+# Cores
+BRANCO = (255, 255, 255)
+PRETO = (0, 0, 0)
+VERMELHO = (255, 0, 0)
+AZUL = (0, 0, 255)
+VERDE = (0, 255, 0)
+
+# Configurações dos jogadores (carros)
+jogador_largura, jogador_altura = 40, 60
+jogador1_x, jogador1_y = LARGURA // 4 - jogador_largura // 2, ALTURA - jogador_altura - 10
+jogador2_x, jogador2_y = 3 * LARGURA // 4 - jogador_largura // 2, ALTURA - jogador_altura - 10
+velocidade_jogador = 5
+
+# Configurações dos caminhões (obstáculos)
+caminhao_largura, caminhao_altura = 50, 100
+caminhoes = []
+velocidade_caminhao = 5
+intervalo_caminhao = 1500  # 1.5 segundos
+
+# Configuração de pontuação
+pontuacao1 = 0
+pontuacao2 = 0
+fonte = pygame.font.Font(None, 36)
+
+# Relógio e temporizador
+relogio = pygame.time.Clock()
+pygame.time.set_timer(pygame.USEREVENT, intervalo_caminhao)
+
+# Função para desenhar os jogadores (carros)
+def desenhar_jogador(x, y, cor):
+    pygame.draw.rect(TELA, cor, (x, y, jogador_largura, jogador_altura))
+
+# Função para desenhar os caminhões (obstáculos)
+def desenhar_caminhoes(caminhoes):
+    for caminhao in caminhoes:
+        pygame.draw.rect(TELA, VERMELHO, caminhao)
+
+# Função principal do jogo
+def jogo():
+    global jogador1_x, jogador1_y, jogador2_x, jogador2_y, pontuacao1, pontuacao2
+
+    rodando = True
+    while rodando:
+        TELA.fill(BRANCO)
+
+        # Eventos
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                rodando = False
+                pygame.quit()
+                sys.exit()
+            elif evento.type == pygame.USEREVENT:
+                x_aleatorio = random.choice([LARGURA // 4 - caminhao_largura // 2, 3 * LARGURA // 4 - caminhao_largura // 2])
+                caminhoes.append(pygame.Rect(x_aleatorio, 0, caminhao_largura, caminhao_altura))
+
+        # Movimentos dos jogadores
+        teclas = pygame.key.get_pressed()
+        # Controles do jogador 1 (setas)
+        if teclas[pygame.K_LEFT] and jogador1_x > 0:
+            jogador1_x -= velocidade_jogador
+        if teclas[pygame.K_RIGHT] and jogador1_x < LARGURA // 2 - jogador_largura:
+            jogador1_x += velocidade_jogador
+
+        # Controles do jogador 2 (WASD)
+        if teclas[pygame.K_a] and jogador2_x > LARGURA // 2:
+            jogador2_x -= velocidade_jogador
+        if teclas[pygame.K_d] and jogador2_x < LARGURA - jogador_largura:
+            jogador2_x += velocidade_jogador
+
+        # Movimentos dos caminhões
+        for caminhao in caminhoes[:]:
+            caminhao.y += velocidade_caminhao
+            if caminhao.colliderect((jogador1_x, jogador1_y, jogador_largura, jogador_altura)):
+                print("Jogador 1 bateu! Fim de jogo!")
+                rodando = False
+            if caminhao.colliderect((jogador2_x, jogador2_y, jogador_largura, jogador_altura)):
+                print("Jogador 2 bateu! Fim de jogo!")
+                rodando = False
+            if caminhao.y > ALTURA:
+                caminhoes.remove(caminhao)
+                if caminhao.x < LARGURA // 2:
+                    pontuacao1 += 1
+                else:
+                    pontuacao2 += 1
+
+        # Desenhar jogadores e caminhões
+        desenhar_jogador(jogador1_x, jogador1_y, AZUL)
+        desenhar_jogador(jogador2_x, jogador2_y, VERDE)
+        desenhar_caminhoes(caminhoes)
+
+        # Desenhar pontuação
+        texto_pontuacao1 = fonte.render(f"Jogador 1: {pontuacao1}", True, PRETO)
+        texto_pontuacao2 = fonte.render(f"Jogador 2: {pontuacao2}", True, PRETO)
+        TELA.blit(texto_pontuacao1, (10, 10))
+        TELA.blit(texto_pontuacao2, (LARGURA - texto_pontuacao2.get_width() - 10, 10))
+
+        # Atualizar a tela e o relógio
+        pygame.display.flip()
+        relogio.tick(30)
+
+# Executar o jogo
+if __name__ == "__main__":
+    jogo()
