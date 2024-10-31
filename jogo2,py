@@ -1,115 +1,137 @@
 import pygame
-import random
 import sys
+import random
 
-# Inicializar o pygame
+# Inicializar Pygame
 pygame.init()
 
-# Configurações da tela
-LARGURA, ALTURA = 600, 600
-TELA = pygame.display.set_mode((LARGURA, ALTURA))
-pygame.display.set_caption("Corrida de Carros vs. Caminhões")
+# Configurações da tela (aumentando para 600x700)
+WIDTH, HEIGHT = 600, 700  # A altura inclui espaço extra para exibir a pontuação
+LINE_WIDTH = 10
+SQUARE_SIZE = WIDTH // 3
+CIRCLE_RADIUS = SQUARE_SIZE // 3
+CIRCLE_WIDTH = 15
+CROSS_WIDTH = 25
+SPACE = SQUARE_SIZE // 4
 
 # Cores
-BRANCO = (255, 255, 255)
-PRETO = (0, 0, 0)
-VERMELHO = (255, 0, 0)
-AZUL = (0, 0, 255)
-VERDE = (0, 255, 0)
+BG_COLOR = (28, 170, 156)
+LINE_COLOR = (23, 145, 135)
+CIRCLE_COLOR = (239, 231, 200)
+CROSS_COLOR = (66, 66, 66)
+TEXT_COLOR = (255, 255, 255)
 
-# Configurações dos jogadores (carros)
-jogador_largura, jogador_altura = 40, 60
-jogador1_x, jogador1_y = LARGURA // 4 - jogador_largura // 2, ALTURA - jogador_altura - 10
-jogador2_x, jogador2_y = 3 * LARGURA // 4 - jogador_largura // 2, ALTURA - jogador_altura - 10
-velocidade_jogador = 5
+# Configurar a tela
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Jogo da Velha com Pontuação e Jogador Aleatório")
+screen.fill(BG_COLOR)
 
-# Configurações dos caminhões (obstáculos)
-caminhao_largura, caminhao_altura = 50, 100
-caminhoes = []
-velocidade_caminhao = 5
-intervalo_caminhao = 1500  # 1.5 segundos
+# Tabuleiro
+board = [[0 for _ in range(3)] for _ in range(3)]
 
-# Configuração de pontuação
-pontuacao1 = 0
-pontuacao2 = 0
-fonte = pygame.font.Font(None, 36)
+# Variáveis de jogador e pontuação
+PLAYER_X = 1
+PLAYER_O = 2
+current_player = random.choice([PLAYER_X, PLAYER_O])  # Escolher aleatoriamente o jogador inicial
+score_X = 0
+score_O = 0
 
-# Relógio e temporizador
-relogio = pygame.time.Clock()
-pygame.time.set_timer(pygame.USEREVENT, intervalo_caminhao)
+# Fonte para exibir a pontuação (aumentada)
+font = pygame.font.Font(None, 48)
 
-# Função para desenhar os jogadores (carros)
-def desenhar_jogador(x, y, cor):
-    pygame.draw.rect(TELA, cor, (x, y, jogador_largura, jogador_altura))
+# Função para desenhar o tabuleiro
+def draw_lines():
+    for i in range(1, 3):
+        pygame.draw.line(screen, LINE_COLOR, (0, i * SQUARE_SIZE), (WIDTH, i * SQUARE_SIZE), LINE_WIDTH)
+        pygame.draw.line(screen, LINE_COLOR, (i * SQUARE_SIZE, 0), (i * SQUARE_SIZE, WIDTH), LINE_WIDTH)
 
-# Função para desenhar os caminhões (obstáculos)
-def desenhar_caminhoes(caminhoes):
-    for caminhao in caminhoes:
-        pygame.draw.rect(TELA, VERMELHO, caminhao)
+# Função para desenhar as figuras
+def draw_figures():
+    for row in range(3):
+        for col in range(3):
+            if board[row][col] == PLAYER_X:
+                pygame.draw.line(screen, CROSS_COLOR, (col * SQUARE_SIZE + SPACE, row * SQUARE_SIZE + SPACE), 
+                                 (col * SQUARE_SIZE + SQUARE_SIZE - SPACE, row * SQUARE_SIZE + SQUARE_SIZE - SPACE), CROSS_WIDTH)
+                pygame.draw.line(screen, CROSS_COLOR, (col * SQUARE_SIZE + SPACE, row * SQUARE_SIZE + SQUARE_SIZE - SPACE), 
+                                 (col * SQUARE_SIZE + SQUARE_SIZE - SPACE, row * SQUARE_SIZE + SPACE), CROSS_WIDTH)
+            elif board[row][col] == PLAYER_O:
+                pygame.draw.circle(screen, CIRCLE_COLOR, 
+                                   (col * SQUARE_SIZE + SQUARE_SIZE // 2, row * SQUARE_SIZE + SQUARE_SIZE // 2), CIRCLE_RADIUS, CIRCLE_WIDTH)
 
-# Função principal do jogo
-def jogo():
-    global jogador1_x, jogador1_y, jogador2_x, jogador2_y, pontuacao1, pontuacao2
+# Função para verificar vitória
+def check_win(player):
+    for row in range(3):
+        if board[row][0] == board[row][1] == board[row][2] == player:
+            return True
+    for col in range(3):
+        if board[0][col] == board[1][col] == board[2][col] == player:
+            return True
+    if board[0][0] == board[1][1] == board[2][2] == player:
+        return True
+    if board[0][2] == board[1][1] == board[2][0] == player:
+        return True
+    return False
 
-    rodando = True
-    while rodando:
-        TELA.fill(BRANCO)
+# Função para verificar empate
+def check_draw():
+    for row in range(3):
+        for col in range(3):
+            if board[row][col] == 0:
+                return False
+    return True
 
-        # Eventos
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                rodando = False
-                pygame.quit()
-                sys.exit()
-            elif evento.type == pygame.USEREVENT:
-                x_aleatorio = random.choice([LARGURA // 4 - caminhao_largura // 2, 3 * LARGURA // 4 - caminhao_largura // 2])
-                caminhoes.append(pygame.Rect(x_aleatorio, 0, caminhao_largura, caminhao_altura))
+# Função para exibir a pontuação
+def draw_score():
+    screen.fill(BG_COLOR, (0, WIDTH, WIDTH, HEIGHT - WIDTH))  # Limpa a área de pontuação
+    score_text = f"Jogador X: {score_X}   Jogador O: {score_O}"
+    text = font.render(score_text, True, TEXT_COLOR)
+    screen.blit(text, (WIDTH // 2 - text.get_width() // 2, WIDTH + 30))
 
-        # Movimentos dos jogadores
-        teclas = pygame.key.get_pressed()
-        # Controles do jogador 1 (setas)
-        if teclas[pygame.K_LEFT] and jogador1_x > 0:
-            jogador1_x -= velocidade_jogador
-        if teclas[pygame.K_RIGHT] and jogador1_x < LARGURA // 2 - jogador_largura:
-            jogador1_x += velocidade_jogador
+# Função para reiniciar o jogo e escolher jogador aleatoriamente
+def restart():
+    global board, current_player
+    board = [[0 for _ in range(3)] for _ in range(3)]
+    current_player = random.choice([PLAYER_X, PLAYER_O])  # Escolhe aleatoriamente quem começa
+    screen.fill(BG_COLOR)
+    draw_lines()
+    draw_score()
 
-        # Controles do jogador 2 (WASD)
-        if teclas[pygame.K_a] and jogador2_x > LARGURA // 2:
-            jogador2_x -= velocidade_jogador
-        if teclas[pygame.K_d] and jogador2_x < LARGURA - jogador_largura:
-            jogador2_x += velocidade_jogador
+draw_lines()
+draw_score()
 
-        # Movimentos dos caminhões
-        for caminhao in caminhoes[:]:
-            caminhao.y += velocidade_caminhao
-            if caminhao.colliderect((jogador1_x, jogador1_y, jogador_largura, jogador_altura)):
-                print("Jogador 1 bateu! Fim de jogo!")
-                rodando = False
-            if caminhao.colliderect((jogador2_x, jogador2_y, jogador_largura, jogador_altura)):
-                print("Jogador 2 bateu! Fim de jogo!")
-                rodando = False
-            if caminhao.y > ALTURA:
-                caminhoes.remove(caminhao)
-                if caminhao.x < LARGURA // 2:
-                    pontuacao1 += 1
+# Loop principal do jogo
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            mouseX = event.pos[0]
+            mouseY = event.pos[1]
+
+            # Impedir cliques na área de pontuação
+            if mouseY > WIDTH:
+                continue
+
+            clicked_row = mouseY // SQUARE_SIZE
+            clicked_col = mouseX // SQUARE_SIZE
+
+            if board[clicked_row][clicked_col] == 0:
+                board[clicked_row][clicked_col] = current_player
+                if check_win(current_player):
+                    if current_player == PLAYER_X:
+                        score_X += 1
+                    else:
+                        score_O += 1
+                    print(f"Jogador {current_player} venceu!")
+                    restart()
+                elif check_draw():
+                    print("Empate!")
+                    restart()
                 else:
-                    pontuacao2 += 1
+                    current_player = PLAYER_O if current_player == PLAYER_X else PLAYER_X
 
-        # Desenhar jogadores e caminhões
-        desenhar_jogador(jogador1_x, jogador1_y, AZUL)
-        desenhar_jogador(jogador2_x, jogador2_y, VERDE)
-        desenhar_caminhoes(caminhoes)
+                draw_figures()
+                draw_score()  # Atualiza a pontuação na tela
 
-        # Desenhar pontuação
-        texto_pontuacao1 = fonte.render(f"Jogador 1: {pontuacao1}", True, PRETO)
-        texto_pontuacao2 = fonte.render(f"Jogador 2: {pontuacao2}", True, PRETO)
-        TELA.blit(texto_pontuacao1, (10, 10))
-        TELA.blit(texto_pontuacao2, (LARGURA - texto_pontuacao2.get_width() - 10, 10))
-
-        # Atualizar a tela e o relógio
-        pygame.display.flip()
-        relogio.tick(30)
-
-# Executar o jogo
-if __name__ == "__main__":
-    jogo()
+    pygame.display.update()
